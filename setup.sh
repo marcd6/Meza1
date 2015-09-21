@@ -3,6 +3,14 @@
 # Setup network configuration for a CentOS 6.6 virtual machine on VirtualBox
 # Please see directions at https://github.com/enterprisemediawiki/meza1
 
+# Get host-only IP address
+while [ -z "$ipaddr" ]
+do
+echo -e "Enter your desired IP address (follow Meza1 VirtualBox Networking steps)"
+read -e -i "192.168.56.56" ipaddr
+done
+
+
 #
 # Load Meza1 repository
 #
@@ -14,19 +22,20 @@ mkdir meza1
 tar xpvf meza1.tar.gz -C ./meza1 --strip-components 1
 
 #
-# Modify network scripts in /etc/sysconfig/network-scripts, 
+# Modify network scripts in /etc/sysconfig/network-scripts,
 # ifcfg-eth0 (for NAT network adapter) and ifcfg-eth1 (for host-only)
 #
 cd /etc/sysconfig/network-scripts
-
-ipaddr="192.168.56.56"
 
 # modify ifcfg-eth0 (NAT)
 sed -r -i 's/ONBOOT=no/ONBOOT=yes/g;' ./ifcfg-eth0
 sed -r -i 's/NM_CONTROLLED=yes/NM_CONTROLLED=no/g;' ./ifcfg-eth0
 
 # copy ifcfg-eth1  (host-only)
-cp ~/sources/meza1/client_files/ifcfg-eth1 ./ifcfg-eth1
+cp /root/sources/meza1/client_files/ifcfg-eth1 ./ifcfg-eth1
+
+# modify IP address as required:
+sed -r -i "s/IPADDR=192.168.56.56/IPADDR=$ipaddr/g;" ./ifcfg-eth1
 
 # get eth1 HWADDR from ifconfig, insert int ifcfg-eth1
 eth1_hwaddr="$(ifconfig eth1 | grep '[a-zA-Z0-9]{2}:[a-zA-Z0-9]{2}:[a-zA-Z0-9]{2}:[a-zA-Z0-9]{2}:[a-zA-Z0-9]{2}:[a-zA-Z0-9]{2}' -o -P)"

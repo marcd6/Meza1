@@ -23,23 +23,35 @@ done
 
 
 # MediaWiki's API URI, for parsoid
-mw_api_uri="$mw_api_protocol://$mw_api_domain/wiki/api.php"
+mw_api_uri="$mw_api_protocol://$mw_api_domain/"
 
 
 echo "******* Downloading node.js *******"
+cmd_profile "START node.js build"
 cd ~/sources
 
-# Download, compile, and install node
-# Ref: https://www.digitalocean.com/community/tutorials/how-to-install-and-run-a-node-js-app-on-centos-6-4-64bit
-wget https://nodejs.org/dist/v0.12.5/node-v0.12.5.tar.gz
-tar zxvf node-v0.12.5.tar.gz
-cd node-v0.12.5
-cmd_profile "START node.js build"
-./configure
-echo "******* Compiling node.js *******"
-make
-echo "******* Installing node.js *******"
-make install
+if [ $architecture = 64 ]; then
+	node_version="node-v0.12.7-linux-x64"
+else
+	node_version="node-v0.12.7-linux-x86"
+fi
+
+
+# Download binaries
+# Ref: http://derpturkey.com/install-node-js-from-binaries/
+wget "http://nodejs.org/dist/v0.12.7/$node_version.tar.gz"
+tar -zxvf "$node_version.tar.gz" -C /usr/local/bin
+rm -f "$node_version.tar.gz"
+
+# Create a symbolic link for node that points to the new directory
+cd /usr/local/bin
+ln -s "$node_version/bin/node" node
+ln -s "$node_version/lib/node_modules/npm/bin/npm-cli.js" npm
+
+if [[ $PATH != *"/usr/local/bin"* ]]; then
+	PATH="/usr/local/bin:$PATH"
+fi
+
 cmd_profile "END node.js build"
 
 # Download and install parsoid
@@ -63,10 +75,9 @@ cmd_profile "END npm test parsoid"
 
 # Configure parsoid for wiki use
 # TODO This part can be modified once localsettings.js is included in initial download of files
-# TODO change client_files to master once merged
 # localsettings for parsoid
 echo "******* Downloading configuration files *******"
-cd ~/sources/meza1/client_files
+cd "$m_meza/client_files"
 
 # Copy Parsoid settings from Meza to Parsoid install
 cp ./localsettings.js /etc/parsoid/api/localsettings.js
@@ -78,24 +89,10 @@ escaped_mw_api_uri=${mw_api_uri//\//\\\/} # need to replace / with \/ for regex
 sed -r -i "s/INSERTED_BY_VE_SCRIPT/$escaped_mw_api_uri/g;" /etc/parsoid/api/localsettings.js
 
 
-# Add VE and UniversalLanguageSelector to ExtensionSettings
-cat ./ExtensionSettingsVE.php >> /var/www/meza1/htdocs/wiki/ExtensionSettings.php
-# Add VE settings to LocalSettings.php
-cat ./LocalSettingsVE.php >> /var/www/meza1/htdocs/wiki/LocalSettings.php
+#
+# Installing Extension:VisualEditor was here
+#
 
-# Run updateExtensions to install UniversalLanguageSelector and VisualEditor
-echo "******* Installing extensions *******"
-php /var/www/meza1/htdocs/wiki/extensions/ExtensionLoader/updateExtensions.php
-
-echo "******* Installing VE *******"
-cd /var/www/meza1/htdocs/wiki/extensions/VisualEditor
-git submodule update --init
-
-# Any time you run updateExtensions.php it may be required to run
-# `php maintenance/update.php` since new extension versions may be installed
-echo "******* Running update.php to update database as required *******"
-cd /var/www/meza1/htdocs/wiki/maintenance
-php update.php --quick
 
 # Create parsoid user to run parsoid node server
 cd /etc/parsoid # @issue#48: is this necessary?
@@ -110,7 +107,7 @@ chown parsoid:parsoid /etc/parsoid -R
 # https://github.com/narath/brigopedia#setup-visualeditor-extension
 # Create service script
 echo "******* Creating parsoid service *******"
-cd ~/sources/meza1/client_files
+cd "$m_meza/client_files"
 cp ./initd_parsoid.sh /etc/init.d/parsoid
 chmod 755 /etc/init.d/parsoid
 chkconfig --add /etc/init.d/parsoid
