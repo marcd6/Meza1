@@ -3,16 +3,25 @@
 # Setup virtual machine on VirtualBox
 
 # Obtain iso file path, virtual machine name and OS bit-version from user.
-echo -n "Enter path, followed by [ENTER]:"
-read isofilepath
+while [ -z "$isofilepath" ]
+do
+echo -n -e "Enter path, followed by [ENTER]:"
+read -e isofilepath
+done
 echo
 
+while [ -z "$vmname" ]
+do
 echo -n "Enter your desired Virtual Machine name, followed by [Enter]:"
 read vmname
+done
 echo
 
+while [ -z "$bitversion" ]
+do
 echo -n "Enter '32' for 32-bit or '64' for 64-bit, followed by [Enter]:"
 read bitversion
+done
 echo
 
 
@@ -26,7 +35,7 @@ fi
 
 #This counts how many iso files are in $isofilepath
 iso_count=0
-for generic_iso in $(find $isofilepath -maxdepth 1 -name "*.iso"); do
+for generic_iso in $(find $isofilepath -name "*.iso"); do
 	
 	((iso_count+=1))
 	
@@ -60,7 +69,7 @@ if [ $bitversion == 32 ]; then
 	elif [ $iso_count -gt 0 ]; then
 		
 		echo "Select .iso file:"
-	    filelist=$(find $isofilepath -maxdepth 1 -name "*.iso" -exec basename '{}' \;)
+	    filelist=$(find $isofilepath -name "*.iso" -exec basename '{}' \;)
 		select filename in $filelist exit
 		  do
 		    case $filename in
@@ -91,7 +100,7 @@ elif [ $bitversion == 64 ]; then
 	elif [ $iso_count -gt 0 ]; then
 	
 		echo "Select .iso file:"
-	    filelist=$(find $isofilepath -maxdepth 1 -name "*.iso" -exec basename '{}' \;)
+	    filelist=$(find $isofilepath -name "*.iso" -exec basename '{}' \;)
 		select filename in $filelist exit
 		  do
 		    case $filename in
